@@ -79,7 +79,7 @@ passport.use(
             return done(null, false, { message: "invalid credentials" });
           }
           const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
-          done(null, { token }); // this lines sends to serializer
+          done(null, { id: user.id, role: user.role }); // this lines sends to serializer
         }
       );
     } catch (err) {
@@ -93,7 +93,7 @@ passport.use(
   new JwtStrategy(opts, async function (jwt_payload, done) {
     console.log({ jwt_payload });
     try {
-      const user = await User.findOne({ id: jwt_payload.sub });
+      const user = await User.findById(jwt_payload.id);
       if (user) {
         return done(null, sanitizeUser(user)); // this calls serializer
         // return done(null, user); // this calls serializer
@@ -120,6 +120,38 @@ passport.deserializeUser(function (user, cb) {
   console.log("de-serialize", user);
   process.nextTick(function () {
     return cb(null, user);
+  });
+});
+
+// Payments
+
+// This is your test secret API key.
+const stripe = require("stripe")(
+  "sk_test_51P4ppnSAceglXICn56FOHVDhshq2TLY4uNxGLuFgvAVZLcYUuTL2Qgv0foK5W22awflJevyhul23rGwx6wgBP5aF00JBkezhjs"
+);
+
+const calculateOrderAmount = (items) => {
+  // Replace this constant with a calculation of the order's amount
+  // Calculate the order total on the server to prevent
+  // people from directly manipulating the amount on the client
+  return 1400;
+};
+
+server.post("/create-payment-intent", async (req, res) => {
+  const { items } = req.body;
+
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: calculateOrderAmount(items),
+    currency: "inr",
+    // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  server.send({
+    clientSecret: paymentIntent.client_secret,
   });
 });
 
