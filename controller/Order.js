@@ -1,9 +1,9 @@
 const { Order } = require("../model/Order");
 
 exports.fetchOrdersByUser = async (req, res) => {
-  const { userId } = req.params;
+  const { id } = req.user;
   try {
-    const orders = await Order.find({ user: userId });
+    const orders = await Order.find({ user: id });
 
     res.status(200).json(orders);
   } catch (err) {
@@ -34,10 +34,10 @@ exports.deleteOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
   const { id } = req.params;
   try {
-    const cart = await Order.findByIdAndUpdate(id, req.body, {
+    const order = await Order.findByIdAndUpdate(id, req.body, {
       new: true,
     });
-    res.status(200).json(cart);
+    res.status(200).json(order);
   } catch (err) {
     res.status(400).json(err);
   }
